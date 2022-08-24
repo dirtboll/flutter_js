@@ -17,6 +17,7 @@ export 'quickjs-sync-server/quickjs_oasis_jsbridge.dart';
 import './extensions/fetch.dart';
 import './extensions/handle_promises.dart';
 import './extensions/websocket.dart';
+import './extensions/base64.dart';
 
 export 'js_eval_result.dart';
 export 'javascript_runtime.dart';
@@ -49,6 +50,7 @@ JavascriptRuntime getJavascriptRuntime({
   }
   if (xhr) runtime.enableFetch();
   if (websocket) runtime.enableWebSocket();
+  runtime.enableBase64();
   runtime.enableHandlePromises();
   return runtime;
 }
