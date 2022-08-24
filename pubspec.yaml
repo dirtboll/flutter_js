@@ -14,6 +14,7 @@ dependencies:
   ffi: "^1.0.0"
   http: ^0.13.4
   sync_http: ^0.3.0
+  web_socket_channel: ^2.2.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

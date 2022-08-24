@@ -16,6 +16,7 @@ export './extensions/handle_promises.dart';
 export 'quickjs-sync-server/quickjs_oasis_jsbridge.dart';
 import './extensions/fetch.dart';
 import './extensions/handle_promises.dart';
+import './extensions/websocket.dart';
 
 export 'js_eval_result.dart';
 export 'javascript_runtime.dart';
@@ -28,6 +29,7 @@ export 'javascript_runtime.dart';
 JavascriptRuntime getJavascriptRuntime({
   bool forceJavascriptCoreOnAndroid = false,
   bool xhr = true,
+  bool websocket = true,
   Map<String, dynamic>? extraArgs = const {},
 }) {
   JavascriptRuntime runtime;
@@ -46,6 +48,7 @@ JavascriptRuntime getJavascriptRuntime({
     runtime = JavascriptCoreRuntime();
   }
   if (xhr) runtime.enableFetch();
+  if (websocket) runtime.enableWebSocket();
   runtime.enableHandlePromises();
   return runtime;
 }
