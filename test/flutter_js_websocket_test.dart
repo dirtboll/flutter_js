@@ -10,8 +10,8 @@ void main() {
 
   late JavascriptRuntime jsRuntime;
 
-  setUp(() {
-    jsRuntime = getJavascriptRuntime();
+  setUp(() async {
+    jsRuntime = await getJavascriptRuntime();
   });
 
   tearDown(() {
