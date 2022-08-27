@@ -15,5 +15,10 @@ function WebSocket(url, protocols) {
 
 WebSocket.currId = 0;
 WebSocket.ids = {};
-WebSocket._dispatchEvent = (id, eName, data) => ((WebSocket.ids[id]||{})._eventCb[eName]||[]).forEach(cb => cb(data));
+WebSocket._dispatchEvent = (id, eName, data) => {
+    if (!WebSocket.ids[id]) return;
+    let ws = WebSocket.ids[id];
+    if (ws["on"+eName]) ws["on"+eName](data);
+    (ws._eventCb[eName]||[]).forEach(cb => cb(data));
+};
 

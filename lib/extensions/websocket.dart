@@ -64,7 +64,7 @@ extension JavascriptRuntimeWebSocketExtension on JavascriptRuntime {
   }
 
   Function _onWsError(int id) {
-    return () async {
+    return (Object err, StackTrace stackTrace) async {
       evaluate("""
         WebSocket._dispatchEvent(${id}, "error");
       """);
