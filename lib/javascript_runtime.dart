@@ -148,7 +148,10 @@ abstract class JavascriptRuntime {
     //print('SET TIMEOUT EVAL RESULT: $setTImeoutResult');
     onMessage('setTimeout', (dynamic args) {
       try {
-        int duration = args['timeout'] ?? 0;
+        int duration = 0;
+        try {
+          duration = args['timeout'].toInt();
+        } catch (e) {}
         String idx = args['timeoutIndex'];
 
         final t = Timer(Duration(milliseconds: duration), () {

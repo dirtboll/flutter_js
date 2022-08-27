@@ -43,6 +43,18 @@ void main() {
     expect(called, true);
   });
 
+  test('setTimeout double', () async {
+    var called = false;
+    jsRuntime.onMessage("setTimeoutCalled_aaa", (dynamic args) {
+      called = true;
+    });
+    jsRuntime.evaluate("""
+      setTimeout(() => {sendMessage('setTimeoutCalled_aaa', JSON.stringify([]))}, 500.2);
+    """);
+    await Future.delayed(Duration(milliseconds: 1000));
+    expect(called, true);
+  });
+
   test('setTimeout with args', () async {
     List<dynamic> called = [];
     jsRuntime.onMessage("setTimeoutCalled_aaa", (dynamic args) {
