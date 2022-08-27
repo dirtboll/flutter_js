@@ -113,44 +113,67 @@ abstract class JavascriptRuntime {
     });
   }
 
+  final Map<String, Timer> timerMap = Map();
+
   void _setupSetTimeout() {
     final setTImeoutResult = evaluate("""
       var __NATIVE_FLUTTER_JS__setTimeoutCount = -1;
       var __NATIVE_FLUTTER_JS__setTimeoutCallbacks = {};
+      var __NATIVE_FLUTTER_JS__setTimeoutCallbacksArgs = {};
       function setTimeout(fnTimeout, timeout) {
         // console.log('Set Timeout Called');
+        timeout = timeout || 0;
+        let args = Array.prototype.slice.call(arguments, setTimeout.length);
         try {
         __NATIVE_FLUTTER_JS__setTimeoutCount += 1;
           var timeoutIndex = '' + __NATIVE_FLUTTER_JS__setTimeoutCount;
           __NATIVE_FLUTTER_JS__setTimeoutCallbacks[timeoutIndex] =  fnTimeout;
+          __NATIVE_FLUTTER_JS__setTimeoutCallbacksArgs[timeoutIndex] = args;
           ;
           // console.log(typeof(sendMessage));
           // console.log('BLA');
-          sendMessage('SetTimeout', JSON.stringify({ timeoutIndex, timeout}));
+          sendMessage('setTimeout', JSON.stringify({ timeoutIndex, timeout}));
+          return timeoutIndex;
             
         } catch (e) {
           console.error('ERROR HERE',e.message);
         }
       };
-      1
+      function clearTimeout(timeoutIndex) {
+        sendMessage('clearTimeout', JSON.stringify({timeoutIndex}));
+        delete __NATIVE_FLUTTER_JS__setTimeoutCallbacks[timeoutIndex];
+        delete __NATIVE_FLUTTER_JS__setTimeoutCallbacksArgs[timeoutIndex];
+      };
     """);
     //print('SET TIMEOUT EVAL RESULT: $setTImeoutResult');
-    onMessage('SetTimeout', (dynamic args) {
+    onMessage('setTimeout', (dynamic args) {
       try {
         int duration = args['timeout'] ?? 0;
         String idx = args['timeoutIndex'];
 
-        Timer(Duration(milliseconds: duration), () {
+        final t = Timer(Duration(milliseconds: duration), () {
+          timerMap.remove(idx);
           evaluate("""
-            __NATIVE_FLUTTER_JS__setTimeoutCallbacks[$idx].call();
+            __NATIVE_FLUTTER_JS__setTimeoutCallbacks[$idx].apply(this, __NATIVE_FLUTTER_JS__setTimeoutCallbacksArgs[$idx]);
             delete __NATIVE_FLUTTER_JS__setTimeoutCallbacks[$idx];
+            delete __NATIVE_FLUTTER_JS__setTimeoutCallbacksArgs[$idx];
           """);
         });
+        timerMap[idx] = t;
       } on Exception catch (e) {
         print('Exception no setTimeout: $e');
       } on Error catch (e) {
         print('Erro no setTimeout: $e');
       }
+    });
+    onMessage('clearTimeout', (args) {
+      String idx = args['timeoutIndex'];
+      if (!timerMap.containsKey(idx) || timerMap[idx] == null) {
+        print('Exception no Timeout with ID: $idx');
+        timerMap.remove(idx);
+        return;
+      }
+      timerMap[idx]!.cancel();
     });
   }
 
