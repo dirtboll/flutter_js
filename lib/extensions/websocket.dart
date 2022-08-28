@@ -42,10 +42,10 @@ extension JavascriptRuntimeWebSocketExtension on JavascriptRuntime {
         ws.stream.listen(_onWsMessage(id),
             onError: _onWsError(id), onDone: _onWsClose(id));
         dartContext[WEBSOCKET_IDS_KEY][id] = ws;
-        debugPrint("Created WebSocket $id to $url with protocols $prot");
-      });
+        // debugPrint("Created WebSocket $id to $url with protocols $prot");
+      }).onError((error, stackTrace) => _onWsError(id)(error, stackTrace));
     } catch (e) {
-      debugPrint("Failed to create websocket $id, cause: ${e.toString()}");
+      // debugPrint("Failed to create websocket $id, cause: ${e.toString()}");
       _onWsClose(id)();
     }
   }
@@ -60,6 +60,7 @@ extension JavascriptRuntimeWebSocketExtension on JavascriptRuntime {
 
   void Function(dynamic) _onWsMessage(int id) {
     return (data) async {
+      // Sanitize input
       final msgb64 = base64.encode(utf8.encode(data.toString()));
       evaluate("""
         WebSocket._dispatchEvent($id, "message", Base64.decode("$msgb64"));
@@ -69,9 +70,11 @@ extension JavascriptRuntimeWebSocketExtension on JavascriptRuntime {
 
   Function _onWsError(int id) {
     return (Object err, StackTrace stackTrace) async {
+      // debugPrint("Got WebSocket error $id, cause: ${err.toString()}");
       evaluate("""
         WebSocket._dispatchEvent($id, "error");
       """);
+      _onMsgClose({id: id});
     };
   }
 
@@ -100,9 +103,10 @@ extension JavascriptRuntimeWebSocketExtension on JavascriptRuntime {
     try {
       ws.sink.close(code, reason);
     } catch (e) {
-      debugPrint("Failed to close websocket $id");
+      debugPrint("Failed to close WebSocket $id, cause: ${e.toString()}");
     } finally {
       dartContext[WEBSOCKET_IDS_KEY].remove(id);
     }
+    // debugPrint("Closed WebSocket $id");
   }
 }
