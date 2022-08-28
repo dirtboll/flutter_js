@@ -46,8 +46,8 @@ Future<JavascriptRuntime> getJavascriptRuntime({
   } else {
     runtime = JavascriptCoreRuntime();
   }
-  runtime.enableHandlePromises();
   List<Future<void>> futures = [
+    Future(() => runtime.enableHandlePromises()),
     runtime.enableBase64(),
     runtime.enableFetch(),
     runtime.enableWebSocket()

@@ -140,6 +140,7 @@ abstract class JavascriptRuntime {
         }
       };
       function clearTimeout(timeoutIndex) {
+        if (!timeoutIndex && timeoutIndex != 0) return;
         sendMessage('clearTimeout', JSON.stringify({timeoutIndex}));
         delete __NATIVE_FLUTTER_JS__setTimeoutCallbacks[timeoutIndex];
         delete __NATIVE_FLUTTER_JS__setTimeoutCallbacksArgs[timeoutIndex];
@@ -170,12 +171,8 @@ abstract class JavascriptRuntime {
       }
     });
     onMessage('clearTimeout', (args) {
-      String idx = args['timeoutIndex'];
-      if (!timerMap.containsKey(idx) || timerMap[idx] == null) {
-        print('Exception no Timeout with ID: $idx');
-        timerMap.remove(idx);
-        return;
-      }
+      String idx = args['timeoutIndex'] ?? "";
+      if (!timerMap.containsKey(idx) || timerMap[idx] == null) return;
       timerMap[idx]!.cancel();
     });
   }

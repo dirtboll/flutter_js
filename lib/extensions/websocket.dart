@@ -35,21 +35,25 @@ extension JavascriptRuntimeWebSocketExtension on JavascriptRuntime {
     try {
       prot = args[2];
     } catch (e) {}
-
-    WebSocket.connect(args[1], protocols: prot).then((sock) {
-      var ws = IOWebSocketChannel(sock);
-      _onWsOpen(id)();
-      ws.stream.listen(_onWsMessage(id),
-          onError: _onWsError(id), onDone: _onWsClose(id));
-      dartContext[WEBSOCKET_IDS_KEY][id] = ws;
-      debugPrint("Created WebSocket (${id}) to ${url} with protocols ${prot}");
-    });
+    try {
+      WebSocket.connect(args[1], protocols: prot).then((sock) {
+        var ws = IOWebSocketChannel(sock);
+        _onWsOpen(id)();
+        ws.stream.listen(_onWsMessage(id),
+            onError: _onWsError(id), onDone: _onWsClose(id));
+        dartContext[WEBSOCKET_IDS_KEY][id] = ws;
+        debugPrint("Created WebSocket $id to $url with protocols $prot");
+      });
+    } catch (e) {
+      debugPrint("Failed to create websocket $id, cause: ${e.toString()}");
+      _onWsClose(id)();
+    }
   }
 
   void Function() _onWsOpen(int id) {
     return () async {
       evaluate("""
-        WebSocket._dispatchEvent(${id}, "open");
+        WebSocket._dispatchEvent($id, "open");
       """);
     };
   }
@@ -58,7 +62,7 @@ extension JavascriptRuntimeWebSocketExtension on JavascriptRuntime {
     return (data) async {
       final msgb64 = base64.encode(utf8.encode(data.toString()));
       evaluate("""
-        WebSocket._dispatchEvent(${id}, "message", Base64.decode("${msgb64}"));
+        WebSocket._dispatchEvent($id, "message", Base64.decode("$msgb64"));
       """);
     };
   }
@@ -66,7 +70,7 @@ extension JavascriptRuntimeWebSocketExtension on JavascriptRuntime {
   Function _onWsError(int id) {
     return (Object err, StackTrace stackTrace) async {
       evaluate("""
-        WebSocket._dispatchEvent(${id}, "error");
+        WebSocket._dispatchEvent($id, "error");
       """);
     };
   }
@@ -74,7 +78,7 @@ extension JavascriptRuntimeWebSocketExtension on JavascriptRuntime {
   void Function() _onWsClose(int id) {
     return () async {
       evaluate("""
-        WebSocket._dispatchEvent(${id}, "close");
+        WebSocket._dispatchEvent($id, "close");
       """);
     };
   }
@@ -88,11 +92,17 @@ extension JavascriptRuntimeWebSocketExtension on JavascriptRuntime {
   }
 
   void _onMsgClose(args) {
-    final id = args[0];
-    assert(id is int);
-    final code = args[1] is int ? args[1] : null;
-    final reason = args[2] is String ? args[2] : null;
+    var id = args["id"];
+    if (!(id is int) || !dartContext[WEBSOCKET_IDS_KEY].containsKey(id)) return;
     final IOWebSocketChannel ws = dartContext[WEBSOCKET_IDS_KEY][id];
-    ws.sink.close(code, reason);
+    final code = args["code"] is int ? args[1] : null;
+    final reason = args["reason"] is String ? args[2] : null;
+    try {
+      ws.sink.close(code, reason);
+    } catch (e) {
+      debugPrint("Failed to close websocket $id");
+    } finally {
+      dartContext[WEBSOCKET_IDS_KEY].remove(id);
+    }
   }
 }
