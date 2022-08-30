@@ -20,7 +20,7 @@ extension JavascriptRuntimeWebSocketExtension on JavascriptRuntime {
     final wsJs = await rootBundle
         .loadString('packages/flutter_js/assets/js/websocket.js');
     evaluate(wsJs);
-    debugPrint("Loaded WebSocket");
+    // debugPrint("Loaded WebSocket");
     this.onMessage("ws:construct", this._onMsgConstruct);
     this.onMessage("ws:send", this._onMsgSend);
     this.onMessage("ws:close", this._onMsgClose);
@@ -28,21 +28,21 @@ extension JavascriptRuntimeWebSocketExtension on JavascriptRuntime {
   }
 
   void _onMsgConstruct(args) {
-    final id = args[0];
+    final id = args["id"];
     assert(id is int);
-    final url = Uri.parse(args[1].toString());
+    final url = args["url"].toString();
     Iterable<String> prot = [];
     try {
-      prot = args[2];
+      prot = args["protocol"];
     } catch (e) {}
     try {
-      WebSocket.connect(args[1], protocols: prot).then((sock) {
+      WebSocket.connect(url, protocols: prot).then((sock) {
         var ws = IOWebSocketChannel(sock);
-        _onWsOpen(id)();
         ws.stream.listen(_onWsMessage(id),
             onError: _onWsError(id), onDone: _onWsClose(id));
         dartContext[WEBSOCKET_IDS_KEY][id] = ws;
         // debugPrint("Created WebSocket $id to $url with protocols $prot");
+        _onWsOpen(id)();
       }).onError((error, stackTrace) => _onWsError(id)(error, stackTrace));
     } catch (e) {
       // debugPrint("Failed to create websocket $id, cause: ${e.toString()}");
@@ -61,9 +61,8 @@ extension JavascriptRuntimeWebSocketExtension on JavascriptRuntime {
   void Function(dynamic) _onWsMessage(int id) {
     return (data) async {
       // Sanitize input
-      final msgb64 = base64.encode(utf8.encode(data.toString()));
       evaluate("""
-        WebSocket._dispatchEvent($id, "message", Base64.decode("$msgb64"));
+        WebSocket._dispatchEvent($id, "message", ${jsonEncode(data)});
       """);
     };
   }
@@ -87,10 +86,11 @@ extension JavascriptRuntimeWebSocketExtension on JavascriptRuntime {
   }
 
   void _onMsgSend(args) {
-    final id = args[0];
-    assert(id is int);
-    final data = args[1];
+    var id = args["id"];
+    if (id.runtimeType != int || dartContext[WEBSOCKET_IDS_KEY][id] == null)
+      return;
     final IOWebSocketChannel ws = dartContext[WEBSOCKET_IDS_KEY][id];
+    final data = args["data"];
     ws.sink.add(data);
   }
 

@@ -28,9 +28,12 @@ void main() {
     print(jsRuntime.evaluate('''
       var ws = new WebSocket("ws://localhost:8080");
       ws.addEventListener("message", (data) => {console.log(data)});
-      ws.send("test2");
-      ws.send("test3");
-      ws.send("test4");
+      ws.onopen = () => {
+        ws.send("test2");
+        ws.send("test3");
+        ws.send("test4");
+      }
+      "";
     '''));
     await Future.delayed(Duration(seconds: 2));
     print(jsRuntime.getActiveWebSockets());
